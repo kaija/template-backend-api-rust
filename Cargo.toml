@@ -1,20 +1,20 @@
 [package]
-name = "rust-api-microservice-template"
+name = "rust-api"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["kaija <kaija.chang@gmail.com>"]
 description = "A production-ready Rust API microservice template"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/rust-api-microservice-template"
+repository = "https://github.com/kaija/template-backend-api-rust"
 keywords = ["api", "microservice", "axum", "tokio", "template"]
 categories = ["web-programming::http-server", "template"]
 
 [lib]
-name = "rust_api_microservice_template"
+name = "rust_api"
 path = "src/lib.rs"
 
 [[bin]]
-name = "rust-api-microservice-template"
+name = "rust-api"
 path = "src/main.rs"
 
 [dependencies]
