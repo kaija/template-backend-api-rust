@@ -1,0 +1,100 @@
+[package]
+name = "rust-api-microservice-template"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A production-ready Rust API microservice template"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/rust-api-microservice-template"
+keywords = ["api", "microservice", "axum", "tokio", "template"]
+categories = ["web-programming::http-server", "template"]
+
+[lib]
+name = "rust_api_microservice_template"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rust-api-microservice-template"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime and web framework
+tokio = { version = "1.35", features = ["full"] }
+axum = { version = "0.7", features = ["macros", "tracing"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Database and async SQL
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate", "macros"] }
+
+# Serialization and configuration
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+config = "0.14"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing-appender = "0.2"
+
+# Error monitoring
+sentry = { version = "0.32", features = ["tracing", "tower", "tower-http", "reqwest"] }
+sentry-tracing = "0.32"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+url = "2.5"
+async-trait = "0.1"
+rand = "0.8"
+futures = "0.3"
+
+# Security and validation
+validator = { version = "0.18", features = ["derive"] }
+argon2 = "0.5"
+
+# Environment and CLI
+clap = { version = "4.4", features = ["derive", "env"] }
+dotenvy = "0.15"
+
+# Vault integration (optional)
+vaultrs = { version = "0.7", optional = true }
+
+[dev-dependencies]
+# Testing utilities
+axum-test = "14.0"
+tokio-test = "0.4"
+mockall = "0.12"
+wiremock = "0.6"
+testcontainers = "0.15"
+tempfile = "3.8"
+
+[features]
+default = []
+vault = ["dep:vaultrs"]
+
+# Optimize for release builds
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Development profile optimizations
+[profile.dev]
+debug = 1
+opt-level = 0
+
+# Test profile
+[profile.test]
+debug = 2
+opt-level = 0

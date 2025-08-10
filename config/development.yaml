@@ -1,0 +1,10 @@
+environment: "development"
+
+logging:
+  level: "debug"
+  include_location: true
+  format: "pretty"
+
+sentry:
+  traces_sample_rate: 1.0
+  debug: true

@@ -1,0 +1,15 @@
+environment: "production"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+logging:
+  level: "info"
+  include_location: false
+  format: "json"
+
+sentry:
+  traces_sample_rate: 0.1
+  enable_tracing: true
+  debug: false
