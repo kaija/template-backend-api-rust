@@ -54,7 +54,7 @@ impl UserService for UserServiceImpl {
         
         match self.repository.create(&new_user).await {
             Ok(user) => Ok(user),
-            Err(RepositoryError::DuplicateEmail) => Err(ServiceError::AlreadyExists),
+            Err(RepositoryError::DuplicateEmail(_)) => Err(ServiceError::AlreadyExists),
             Err(e) => Err(ServiceError::Repository(e)),
         }
     }
@@ -82,7 +82,7 @@ impl UserService for UserServiceImpl {
         match self.repository.update(id, request.name, request.email).await {
             Ok(user) => Ok(user),
             Err(RepositoryError::NotFound) => Err(ServiceError::NotFound),
-            Err(RepositoryError::DuplicateEmail) => Err(ServiceError::AlreadyExists),
+            Err(RepositoryError::DuplicateEmail(_)) => Err(ServiceError::AlreadyExists),
             Err(e) => Err(ServiceError::Repository(e)),
         }
     }

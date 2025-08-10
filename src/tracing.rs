@@ -128,22 +128,7 @@ fn mask_dsn(dsn: &str) -> String {
     }
 }
 
-/// Create Sentry tracing layer
-fn create_sentry_layer() -> sentry::integrations::tracing::SentryLayer<tracing_subscriber::Registry> {
-    sentry::integrations::tracing::layer()
-        .event_filter(|md| match *md.level() {
-            // Capture error level events as Sentry events
-            // These are grouped into issues, representing high-severity errors to act upon
-            tracing::Level::ERROR => sentry::integrations::tracing::EventFilter::Event,
-            // Capture warn and info as breadcrumbs for context
-            tracing::Level::WARN => sentry::integrations::tracing::EventFilter::Breadcrumb,
-            tracing::Level::INFO => sentry::integrations::tracing::EventFilter::Breadcrumb,
-            // Ignore trace level events, as they're too verbose
-            tracing::Level::TRACE => sentry::integrations::tracing::EventFilter::Ignore,
-            // Capture debug as breadcrumbs
-            tracing::Level::DEBUG => sentry::integrations::tracing::EventFilter::Breadcrumb,
-        })
-}
+
 
 /// Create environment filter for log level filtering
 fn create_env_filter(config: &LoggingConfig) -> Result<EnvFilter> {

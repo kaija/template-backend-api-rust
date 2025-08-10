@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rust_api_microservice_template::{config, tracing as app_tracing};
+use rust_api::{config, tracing as app_tracing};
 use tracing_appender::non_blocking::WorkerGuard;
 
 #[tokio::main]

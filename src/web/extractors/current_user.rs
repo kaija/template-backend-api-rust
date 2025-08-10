@@ -1,6 +1,6 @@
 use axum::{
     async_trait,
-    extract::{FromRequestParts, Request},
+    extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
 
