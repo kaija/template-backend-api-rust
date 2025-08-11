@@ -16,6 +16,8 @@ pub enum ConfigValidationError {
     Sentry(String),
     #[error("Invalid Vault configuration: {0}")]
     Vault(String),
+    #[error("Invalid external service configuration: {0}")]
+    ExternalService(String),
 }
 
 /// Main application configuration
@@ -26,6 +28,7 @@ pub struct AppConfig {
     pub logging: LoggingConfig,
     pub sentry: SentryConfig,
     pub vault: Option<VaultConfig>,
+    pub external_service: ExternalServiceConfig,
     #[serde(default)]
     pub environment: String,
 }
@@ -37,6 +40,7 @@ impl AppConfig {
         self.database.validate()?;
         self.logging.validate()?;
         self.sentry.validate()?;
+        self.external_service.validate()?;
         
         if let Some(vault) = &self.vault {
             vault.validate()?;
@@ -388,6 +392,81 @@ fn default_vault_timeout() -> u64 {
     30
 }
 
+/// External service configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalServiceConfig {
+    #[serde(default = "default_external_timeout")]
+    pub timeout_seconds: Option<u64>,
+    #[serde(default = "default_max_retries")]
+    pub max_retries: u32,
+    #[serde(default = "default_retry_delay_ms")]
+    pub retry_delay_ms: u64,
+    #[serde(default)]
+    pub circuit_breaker_enabled: bool,
+    #[serde(default = "default_circuit_breaker_threshold")]
+    pub circuit_breaker_threshold: u32,
+    #[serde(default = "default_circuit_breaker_timeout")]
+    pub circuit_breaker_timeout_seconds: u64,
+}
+
+impl ExternalServiceConfig {
+    /// Validate external service configuration
+    pub fn validate(&self) -> Result<(), ConfigValidationError> {
+        if let Some(timeout) = self.timeout_seconds {
+            if timeout == 0 {
+                return Err(ConfigValidationError::ExternalService("External service timeout must be greater than 0".to_string()));
+            }
+        }
+        
+        if self.retry_delay_ms == 0 {
+            return Err(ConfigValidationError::ExternalService("Retry delay must be greater than 0".to_string()));
+        }
+        
+        if self.circuit_breaker_threshold == 0 {
+            return Err(ConfigValidationError::ExternalService("Circuit breaker threshold must be greater than 0".to_string()));
+        }
+        
+        if self.circuit_breaker_timeout_seconds == 0 {
+            return Err(ConfigValidationError::ExternalService("Circuit breaker timeout must be greater than 0".to_string()));
+        }
+        
+        Ok(())
+    }
+}
+
+fn default_external_timeout() -> Option<u64> {
+    Some(30)
+}
+
+fn default_max_retries() -> u32 {
+    3
+}
+
+fn default_retry_delay_ms() -> u64 {
+    1000
+}
+
+fn default_circuit_breaker_threshold() -> u32 {
+    5
+}
+
+fn default_circuit_breaker_timeout() -> u64 {
+    60
+}
+
+impl Default for ExternalServiceConfig {
+    fn default() -> Self {
+        Self {
+            timeout_seconds: default_external_timeout(),
+            max_retries: default_max_retries(),
+            retry_delay_ms: default_retry_delay_ms(),
+            circuit_breaker_enabled: false,
+            circuit_breaker_threshold: default_circuit_breaker_threshold(),
+            circuit_breaker_timeout_seconds: default_circuit_breaker_timeout(),
+        }
+    }
+}
+
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
@@ -448,6 +527,7 @@ impl Default for AppConfig {
             logging: LoggingConfig::default(),
             sentry: SentryConfig::default(),
             vault: None,
+            external_service: ExternalServiceConfig::default(),
             environment: "development".to_string(),
         }
     }

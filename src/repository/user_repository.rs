@@ -76,6 +76,25 @@ pub trait UserRepository: Send + Sync {
     
     /// Deactivate user
     async fn deactivate(&self, id: UserId) -> Result<(), RepositoryError>;
+    
+    /// Begin a new database transaction
+    async fn begin_transaction(&self) -> Result<Box<dyn UserRepositoryTransaction>, RepositoryError>;
+}
+
+/// Transaction-aware user repository operations
+#[async_trait]
+pub trait UserRepositoryTransaction: Send + Sync {
+    /// Create a new user within the transaction
+    async fn create(&mut self, user: &NewUser) -> Result<User, RepositoryError>;
+    
+    /// Update user within the transaction
+    async fn update(&mut self, id: UserId, name: Option<String>, email: Option<String>) -> Result<User, RepositoryError>;
+    
+    /// Commit the transaction
+    async fn commit(self: Box<Self>) -> Result<(), RepositoryError>;
+    
+    /// Rollback the transaction
+    async fn rollback(self: Box<Self>) -> Result<(), RepositoryError>;
 }
 
 /// SQLx implementation of UserRepository
@@ -398,6 +417,89 @@ impl UserRepository for SqlxUserRepository {
         
         info!("Successfully deactivated user with ID: {}", id);
         Ok(())
+    }
+
+    async fn begin_transaction(&self) -> Result<Box<dyn UserRepositoryTransaction>, RepositoryError> {
+        let tx = self.pool.begin().await.map_err(|e| {
+            warn!("Failed to begin transaction: {}", e);
+            RepositoryError::Transaction(e.to_string())
+        })?;
+        
+        Ok(Box::new(SqlxUserRepositoryTransaction { tx }))
+    }
+}
+
+/// SQLx transaction implementation
+pub struct SqlxUserRepositoryTransaction {
+    tx: Transaction<'static, Postgres>,
+}
+
+#[async_trait]
+impl UserRepositoryTransaction for SqlxUserRepositoryTransaction {
+    async fn create(&mut self, user: &NewUser) -> Result<User, RepositoryError> {
+        info!("Creating new user in transaction with email: {}", user.email);
+        
+        let user = sqlx::query_as::<_, User>(
+            r#"
+            INSERT INTO users (name, email, is_active, created_at, updated_at)
+            VALUES ($1, $2, true, NOW(), NOW())
+            RETURNING id, name, email, is_active, created_at, updated_at
+            "#
+        )
+        .bind(&user.name)
+        .bind(&user.email)
+        .fetch_one(&mut *self.tx)
+        .await
+        .map_err(|e| {
+            warn!("Failed to create user in transaction: {}", e);
+            if let sqlx::Error::Database(db_err) = &e {
+                if db_err.constraint() == Some("users_email_key") {
+                    return RepositoryError::DuplicateEmail(user.email.clone());
+                }
+            }
+            RepositoryError::Database(e)
+        })?;
+        
+        info!("Successfully created user in transaction with ID: {}", user.id);
+        Ok(user)
+    }
+
+    async fn update(&mut self, id: UserId, name: Option<String>, email: Option<String>) -> Result<User, RepositoryError> {
+        info!("Updating user in transaction with ID: {}", id);
+        
+        let user = sqlx::query_as::<_, User>(
+            r#"
+            UPDATE users 
+            SET name = COALESCE($2, name),
+                email = COALESCE($3, email),
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING id, name, email, is_active, created_at, updated_at
+            "#
+        )
+        .bind(id)
+        .bind(name)
+        .bind(email)
+        .fetch_optional(&mut *self.tx)
+        .await?
+        .ok_or(RepositoryError::NotFound)?;
+        
+        info!("Successfully updated user in transaction with ID: {}", id);
+        Ok(user)
+    }
+
+    async fn commit(self: Box<Self>) -> Result<(), RepositoryError> {
+        self.tx.commit().await.map_err(|e| {
+            warn!("Failed to commit transaction: {}", e);
+            RepositoryError::Transaction(e.to_string())
+        })
+    }
+
+    async fn rollback(self: Box<Self>) -> Result<(), RepositoryError> {
+        self.tx.rollback().await.map_err(|e| {
+            warn!("Failed to rollback transaction: {}", e);
+            RepositoryError::Transaction(e.to_string())
+        })
     }
 }
 

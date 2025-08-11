@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use std::sync::Arc;
 
 use crate::models::{AuthRequest, AuthResponse, CurrentUser};
 
@@ -28,12 +29,15 @@ pub enum AuthError {
 
 /// Authentication service implementation
 pub struct AuthServiceImpl {
+    user_repository: Arc<dyn crate::repository::UserRepository>,
     // TODO: Add JWT secret, token expiration, etc.
 }
 
 impl AuthServiceImpl {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(user_repository: Arc<dyn crate::repository::UserRepository>) -> Self {
+        Self {
+            user_repository,
+        }
     }
 }
 
