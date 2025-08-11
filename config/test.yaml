@@ -1,0 +1,41 @@
+environment: "test"
+
+server:
+  host: "127.0.0.1"
+  port: 8080
+  timeout_seconds: 30
+  max_connections: 100
+  graceful_shutdown_timeout_seconds: 10
+  connection_drain_timeout_seconds: 5
+  resource_cleanup_timeout_seconds: 3
+
+database:
+  url: "sqlite::memory:"
+  max_connections: 5
+  min_connections: 1
+  acquire_timeout_seconds: 10
+  idle_timeout_seconds: 300
+  connect_timeout_seconds: 5
+  statement_timeout_seconds: 15
+
+logging:
+  level: "debug"
+  format: "pretty"
+  include_location: true
+  target: "stdout"
+
+sentry:
+  dsn: ""
+  environment: "test"
+  traces_sample_rate: 0.0
+  enable_tracing: false
+  max_breadcrumbs: 50
+  debug: false
+
+external_service:
+  timeout_seconds: 10
+  max_retries: 2
+  retry_delay_ms: 500
+  circuit_breaker_enabled: false
+  circuit_breaker_threshold: 3
+  circuit_breaker_timeout_seconds: 30

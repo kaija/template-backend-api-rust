@@ -12,7 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -30,19 +29,23 @@ services:
       timeout: 5s
       retries: 5
 
-  # Application (uncomment when ready)
-  # api:
-  #   build: .
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     APP_DATABASE__URL: postgresql://postgres:password@postgres:5432/rust_api_template
-  #     APP_LOGGING__LEVEL: debug
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./config:/app/config:ro
+  # Application
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      APP_DATABASE__URL: postgresql://postgres:password@postgres:5432/rust_api_template
+      APP_LOGGING__LEVEL: debug
+      APP_LOGGING__FORMAT: pretty
+      APP_SERVER__GRACEFUL_SHUTDOWN_TIMEOUT_SECONDS: 15
+      APP_SERVER__CONNECTION_DRAIN_TIMEOUT_SECONDS: 8
+      APP_SERVER__RESOURCE_CLEANUP_TIMEOUT_SECONDS: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config:ro
 
 volumes:
   postgres_data:

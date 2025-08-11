@@ -6,6 +6,8 @@ server:
   timeout_seconds: 30
   max_connections: 1000
   graceful_shutdown_timeout_seconds: 30
+  connection_drain_timeout_seconds: 10
+  resource_cleanup_timeout_seconds: 5
 
 database:
   url: "postgresql://localhost/rust_api_template"
@@ -29,3 +31,11 @@ sentry:
   enable_tracing: true
   max_breadcrumbs: 100
   debug: false
+
+external_service:
+  timeout_seconds: 30
+  max_retries: 3
+  retry_delay_ms: 1000
+  circuit_breaker_enabled: false
+  circuit_breaker_threshold: 5
+  circuit_breaker_timeout_seconds: 60

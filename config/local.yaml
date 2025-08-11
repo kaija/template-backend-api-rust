@@ -1,0 +1,6 @@
+database:
+  url: "postgresql://postgres:password@localhost:5432/rust_api_template"
+
+logging:
+  level: "debug"
+  format: "pretty"

@@ -74,6 +74,10 @@ pub struct ServerConfig {
     pub max_connections: usize,
     #[serde(default = "default_graceful_shutdown_timeout")]
     pub graceful_shutdown_timeout_seconds: u64,
+    #[serde(default = "default_connection_drain_timeout")]
+    pub connection_drain_timeout_seconds: u64,
+    #[serde(default = "default_resource_cleanup_timeout")]
+    pub resource_cleanup_timeout_seconds: u64,
 }
 
 impl ServerConfig {
@@ -129,6 +133,14 @@ impl ServerConfig {
 
 fn default_graceful_shutdown_timeout() -> u64 {
     30
+}
+
+fn default_connection_drain_timeout() -> u64 {
+    10
+}
+
+fn default_resource_cleanup_timeout() -> u64 {
+    5
 }
 
 /// Database configuration
@@ -475,6 +487,8 @@ impl Default for ServerConfig {
             timeout_seconds: 30,
             max_connections: 1000,
             graceful_shutdown_timeout_seconds: default_graceful_shutdown_timeout(),
+            connection_drain_timeout_seconds: default_connection_drain_timeout(),
+            resource_cleanup_timeout_seconds: default_resource_cleanup_timeout(),
         }
     }
 }
