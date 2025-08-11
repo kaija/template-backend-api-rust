@@ -60,20 +60,20 @@ pub async fn create_user_with_context(
 ) -> Result<Json<User>, ContextualAppError> {
     // Extract correlation ID from request (set by middleware)
     let correlation_id = /* extract from request extensions */;
-    
+
     // Create error context
     let context = ErrorContext::new()
         .with_correlation_id(correlation_id)
         .with_request_path("/api/users")
         .with_request_method("POST")
         .with_metadata("email", request.email.clone());
-    
+
     // Use contextual error handling
     let user = app_state.user_service
         .create_user(request)
         .await
         .map_err(|e| AppError::Service(e).with_context(context.clone()))?;
-    
+
     Ok(Json(user))
 }
 ```

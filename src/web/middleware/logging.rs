@@ -21,20 +21,20 @@ pub async fn logging_middleware(
     let uri = request.uri().clone();
     let version = request.version();
     let headers = request.headers().clone();
-    
+
     // Extract correlation ID from request extensions or generate one
     let correlation_id = request
         .extensions()
         .get::<String>()
         .cloned()
         .unwrap_or_else(|| Uuid::new_v4().to_string());
-    
+
     // Extract user agent and other relevant headers
     let user_agent = headers
         .get("user-agent")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("-");
-    
+
     let content_length = headers
         .get("content-length")
         .and_then(|h| h.to_str().ok())
@@ -64,11 +64,11 @@ pub async fn logging_middleware(
 
     // Process the request
     let response = next.run(request).await;
-    
+
     // Calculate response time
     let duration = start_time.elapsed();
     let status = response.status();
-    
+
     // Extract response content length if available
     let response_size = response
         .headers()
@@ -135,30 +135,30 @@ pub async fn detailed_logging_middleware(
     let uri = request.uri().clone();
     let version = request.version();
     let headers = request.headers().clone();
-    
+
     // Extract correlation ID from request extensions or generate one
     let correlation_id = request
         .extensions()
         .get::<String>()
         .cloned()
         .unwrap_or_else(|| Uuid::new_v4().to_string());
-    
+
     // Extract additional request metadata
     let user_agent = headers
         .get("user-agent")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("-");
-    
+
     let referer = headers
         .get("referer")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("-");
-    
+
     let content_type = headers
         .get("content-type")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("-");
-    
+
     let content_length = headers
         .get("content-length")
         .and_then(|h| h.to_str().ok())
@@ -202,18 +202,18 @@ pub async fn detailed_logging_middleware(
 
     // Process the request
     let response = next.run(request).await;
-    
+
     // Calculate response time
     let duration = start_time.elapsed();
     let status = response.status();
-    
+
     // Extract response metadata
     let response_content_type = response
         .headers()
         .get("content-type")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("-");
-    
+
     let response_size = response
         .headers()
         .get("content-length")
@@ -230,7 +230,7 @@ pub async fn detailed_logging_middleware(
     // Log the response with detailed information and appropriate level
     let duration_ms = duration.as_millis();
     let duration_us = duration.as_micros();
-    
+
     match status.as_u16() {
         200..=299 => {
             info!(
@@ -322,7 +322,7 @@ pub async fn access_log_middleware(
     let method = request.method().clone();
     let uri = request.uri().clone();
     let version = request.version();
-    
+
     // Extract user agent and referer before moving request
     let user_agent = request
         .headers()
@@ -330,7 +330,7 @@ pub async fn access_log_middleware(
         .and_then(|h| h.to_str().ok())
         .unwrap_or("-")
         .to_string();
-    
+
     let referer = request
         .headers()
         .get("referer")
@@ -340,7 +340,7 @@ pub async fn access_log_middleware(
 
     // Process the request
     let response = next.run(request).await;
-    
+
     // Calculate response time and extract response info
     let duration = start_time.elapsed();
     let status = response.status();
@@ -386,7 +386,7 @@ mod tests {
         // This test would require setting up a test server
         // For now, we'll just test that the middleware compiles and can be created
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
-        
+
         // Test that we can create the middleware functions
         assert!(true); // Placeholder test
     }

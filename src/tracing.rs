@@ -47,13 +47,13 @@ impl std::fmt::Display for CorrelationId {
 pub fn init_tracing(config: &AppConfig) -> Result<Option<WorkerGuard>> {
     let logging_config = &config.logging;
     let sentry_config = &config.sentry;
-    
+
     // Initialize Sentry first if configured
     let _sentry_guard = init_sentry(sentry_config)?;
-    
+
     // Create environment filter based on configuration
     let env_filter = create_env_filter(logging_config)?;
-    
+
     // Initialize tracing - Sentry will capture errors through its global integration
     let guard = match logging_config.target.to_lowercase().as_str() {
         "stdout" => {
@@ -74,7 +74,7 @@ pub fn init_tracing(config: &AppConfig) -> Result<Option<WorkerGuard>> {
             None
         }
     };
-    
+
     tracing::info!(
         "Tracing initialized with level: {}, format: {}, target: {}, sentry_enabled: {}",
         logging_config.level,
@@ -82,7 +82,7 @@ pub fn init_tracing(config: &AppConfig) -> Result<Option<WorkerGuard>> {
         logging_config.target,
         sentry_config.is_enabled()
     );
-    
+
     Ok(guard)
 }
 
@@ -134,7 +134,7 @@ fn mask_dsn(dsn: &str) -> String {
 fn create_env_filter(config: &LoggingConfig) -> Result<EnvFilter> {
     // Start with the configured log level as default
     let default_level = &config.level;
-    
+
     // Try to create from environment variable first, fall back to config
     let filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new(default_level))
@@ -143,7 +143,7 @@ fn create_env_filter(config: &LoggingConfig) -> Result<EnvFilter> {
             tracing::warn!("Invalid log level '{}', falling back to 'info'", default_level);
             EnvFilter::new("info")
         });
-    
+
     Ok(filter)
 }
 
@@ -363,7 +363,7 @@ mod tests {
     fn test_correlation_id_generation() {
         let id1 = CorrelationId::new();
         let id2 = CorrelationId::new();
-        
+
         assert_ne!(id1.as_str(), id2.as_str());
         assert!(!id1.as_str().is_empty());
         assert!(!id2.as_str().is_empty());
@@ -373,7 +373,7 @@ mod tests {
     fn test_correlation_id_from_string() {
         let test_id = "test-correlation-id";
         let id = CorrelationId::from_string(test_id.to_string());
-        
+
         assert_eq!(id.as_str(), test_id);
         assert_eq!(id.to_string(), test_id);
     }
@@ -381,7 +381,7 @@ mod tests {
     #[test]
     fn test_create_env_filter_valid_levels() {
         let levels = ["trace", "debug", "info", "warn", "error"];
-        
+
         for level in &levels {
             let config = LoggingConfig {
                 level: level.to_string(),
@@ -390,7 +390,7 @@ mod tests {
                 target: "stdout".to_string(),
                 file_path: None,
             };
-            
+
             let result = create_env_filter(&config);
             assert!(result.is_ok(), "Failed to create filter for level: {}", level);
         }
@@ -405,7 +405,7 @@ mod tests {
             target: "stdout".to_string(),
             file_path: None,
         };
-        
+
         let result = create_env_filter(&config);
         assert!(result.is_ok()); // Should fallback to info level
     }
@@ -414,7 +414,7 @@ mod tests {
     async fn test_init_tracing_stdout() {
         let config = create_test_config("info", "json", "stdout");
         let result = init_tracing(&config);
-        
+
         assert!(result.is_ok());
         assert!(result.unwrap().is_none()); // No guard for stdout
     }
@@ -423,7 +423,7 @@ mod tests {
     async fn test_init_tracing_stderr() {
         let config = create_test_config("debug", "pretty", "stderr");
         let result = init_tracing(&config);
-        
+
         assert!(result.is_ok());
         assert!(result.unwrap().is_none()); // No guard for stderr
     }
@@ -432,12 +432,12 @@ mod tests {
     async fn test_init_tracing_file() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_file = temp_dir.path().join("test.log");
-        
+
         let mut config = create_test_config("warn", "compact", "file");
         config.logging.file_path = Some(log_file.to_string_lossy().to_string());
-        
+
         let result = init_tracing(&config);
-        
+
         assert!(result.is_ok());
         assert!(result.unwrap().is_some()); // Should have guard for file
     }

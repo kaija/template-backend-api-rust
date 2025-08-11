@@ -9,16 +9,16 @@ use crate::repository::{UserRepository, RepositoryError};
 pub enum ServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
-    
+
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("User not found")]
     NotFound,
-    
+
     #[error("User already exists")]
     AlreadyExists,
-    
+
     #[error("External service error: {0}")]
     ExternalService(String),
 }
@@ -42,10 +42,10 @@ pub struct UserServiceImpl {
 
 impl UserServiceImpl {
     pub fn new(
-        repository: Arc<dyn UserRepository>, 
+        repository: Arc<dyn UserRepository>,
         external_service: Arc<dyn crate::services::ExternalService>
     ) -> Self {
-        Self { 
+        Self {
             repository,
             external_service,
         }
@@ -65,7 +65,7 @@ impl UserServiceImpl {
         // Example: Send to webhook endpoint
         if let Err(e) = self.external_service
             .post("https://api.example.com/webhooks/user-created", notification_payload)
-            .await 
+            .await
         {
             tracing::warn!("Failed to send user creation notification: {}", e);
             return Err(ServiceError::ExternalService(format!("Notification failed: {}", e)));
@@ -96,7 +96,7 @@ impl UserServiceImpl {
         // Example: Send to webhook endpoint
         if let Err(e) = self.external_service
             .post("https://api.example.com/webhooks/user-updated", notification_payload)
-            .await 
+            .await
         {
             tracing::warn!("Failed to send user update notification: {}", e);
             return Err(ServiceError::ExternalService(format!("Notification failed: {}", e)));
@@ -119,7 +119,7 @@ impl UserServiceImpl {
         // Example: Send to webhook endpoint
         if let Err(e) = self.external_service
             .post("https://api.example.com/webhooks/user-deleted", notification_payload)
-            .await 
+            .await
         {
             tracing::warn!("Failed to send user deletion notification: {}", e);
             return Err(ServiceError::ExternalService(format!("Notification failed: {}", e)));
@@ -131,7 +131,7 @@ impl UserServiceImpl {
     /// Create user with transaction handling for complex operations
     pub async fn create_user_with_transaction(&self, request: CreateUserRequest) -> Result<User, ServiceError> {
         tracing::info!("Creating user with transaction: {}", request.email);
-        
+
         // Validate and normalize the request
         let normalized_request = match request.validate_and_normalize() {
             Ok(req) => req,
@@ -261,7 +261,7 @@ impl UserService for UserServiceImpl {
     #[tracing::instrument(skip(self, request), fields(email = %request.email))]
     async fn create_user(&self, request: CreateUserRequest) -> Result<User, ServiceError> {
         tracing::info!("Creating user with email: {}", request.email);
-        
+
         // Validate and normalize the request
         let normalized_request = match request.validate_and_normalize() {
             Ok(req) => req,
@@ -278,18 +278,18 @@ impl UserService for UserServiceImpl {
         }
 
         let new_user = NewUser::from(normalized_request);
-        
+
         // Create user with transaction for complex operations
         let user = match self.repository.create(&new_user).await {
             Ok(user) => {
                 tracing::info!("Successfully created user with ID: {}", user.id);
-                
+
                 // Notify external services about user creation (fire and forget)
                 if let Err(e) = self.notify_user_created(&user).await {
                     tracing::warn!("Failed to notify external services about user creation: {}", e);
                     // Don't fail the operation if external notification fails
                 }
-                
+
                 user
             },
             Err(RepositoryError::DuplicateEmail(email)) => {
@@ -301,14 +301,14 @@ impl UserService for UserServiceImpl {
                 return Err(ServiceError::Repository(e));
             }
         };
-        
+
         Ok(user)
     }
 
     #[tracing::instrument(skip(self), fields(user_id = %id))]
     async fn get_user(&self, id: UserId) -> Result<User, ServiceError> {
         tracing::debug!("Fetching user with ID: {}", id);
-        
+
         match self.repository.find_by_id(id).await? {
             Some(user) => {
                 tracing::debug!("Found user: {} ({})", user.name, user.email);
@@ -324,10 +324,10 @@ impl UserService for UserServiceImpl {
     #[tracing::instrument(skip(self), fields(email = %email))]
     async fn get_user_by_email(&self, email: &str) -> Result<User, ServiceError> {
         tracing::debug!("Fetching user with email: {}", email);
-        
+
         // Normalize email for lookup
         let normalized_email = email.trim().to_lowercase();
-        
+
         match self.repository.find_by_email(&normalized_email).await? {
             Some(user) => {
                 tracing::debug!("Found user: {} (ID: {})", user.name, user.id);
@@ -343,7 +343,7 @@ impl UserService for UserServiceImpl {
     #[tracing::instrument(skip(self, request), fields(user_id = %id))]
     async fn update_user(&self, id: UserId, request: UpdateUserRequest) -> Result<User, ServiceError> {
         tracing::info!("Updating user with ID: {}", id);
-        
+
         // Validate and normalize the request
         let normalized_request = match request.validate_and_normalize() {
             Ok(req) => req,
@@ -380,13 +380,13 @@ impl UserService for UserServiceImpl {
         let updated_user = match self.repository.update(id, normalized_request.name, normalized_request.email).await {
             Ok(user) => {
                 tracing::info!("Successfully updated user with ID: {}", id);
-                
+
                 // Notify external services about user update (fire and forget)
                 if let Err(e) = self.notify_user_updated(&existing_user, &user).await {
                     tracing::warn!("Failed to notify external services about user update: {}", e);
                     // Don't fail the operation if external notification fails
                 }
-                
+
                 user
             },
             Err(RepositoryError::NotFound) => {
@@ -409,7 +409,7 @@ impl UserService for UserServiceImpl {
     #[tracing::instrument(skip(self), fields(user_id = %id))]
     async fn delete_user(&self, id: UserId) -> Result<(), ServiceError> {
         tracing::info!("Deleting user with ID: {}", id);
-        
+
         // Get user details before deletion for external notifications
         let user = match self.repository.find_by_id(id).await? {
             Some(user) => user,
@@ -423,13 +423,13 @@ impl UserService for UserServiceImpl {
         match self.repository.soft_delete(id).await {
             Ok(()) => {
                 tracing::info!("Successfully soft deleted user with ID: {}", id);
-                
+
                 // Notify external services about user deletion (fire and forget)
                 if let Err(e) = self.notify_user_deleted(&user).await {
                     tracing::warn!("Failed to notify external services about user deletion: {}", e);
                     // Don't fail the operation if external notification fails
                 }
-                
+
                 Ok(())
             },
             Err(RepositoryError::NotFound) => {
@@ -446,19 +446,19 @@ impl UserService for UserServiceImpl {
     #[tracing::instrument(skip(self))]
     async fn list_users(&self, limit: i64, offset: i64) -> Result<Vec<User>, ServiceError> {
         tracing::debug!("Listing users with limit: {}, offset: {}", limit, offset);
-        
+
         // Validate pagination parameters
         if limit <= 0 || limit > 1000 {
             return Err(ServiceError::Validation("Limit must be between 1 and 1000".to_string()));
         }
-        
+
         if offset < 0 {
             return Err(ServiceError::Validation("Offset must be non-negative".to_string()));
         }
 
         let users = self.repository.list_active(limit, offset).await?;
         tracing::debug!("Retrieved {} users", users.len());
-        
+
         Ok(users)
     }
 }

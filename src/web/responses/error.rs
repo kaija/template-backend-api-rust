@@ -15,67 +15,67 @@ pub enum AppError {
     // Configuration errors
     #[error("Configuration error: {0}")]
     Config(#[from] config::ConfigError),
-    
+
     // Database errors
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    
+
     // Repository errors
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
-    
+
     // Service errors
     #[error("Service error: {0}")]
     Service(#[from] ServiceError),
-    
+
     // Validation errors
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     // Authentication errors
     #[error("Authentication error: {0}")]
     Authentication(String),
-    
+
     // Authorization errors
     #[error("Authorization error: {0}")]
     Authorization(String),
-    
+
     // Not found errors
     #[error("Not found: {0}")]
     NotFound(String),
-    
+
     // Conflict errors
     #[error("Conflict: {0}")]
     Conflict(String),
-    
+
     // External service errors
     #[error("External service error: {0}")]
     ExternalService(String),
-    
+
     // HTTP client errors
     #[error("HTTP client error: {0}")]
     HttpClient(#[from] reqwest::Error),
-    
+
     // Serialization errors
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
-    
+
     // IO errors
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    
+
     // Timeout errors
     #[error("Timeout error: {0}")]
     Timeout(String),
-    
+
     // Rate limiting errors
     #[error("Rate limit exceeded: {0}")]
     RateLimit(String),
-    
+
     // Internal server errors
     #[error("Internal server error")]
     Internal,
-    
+
     // Generic errors with context
     #[error("Error: {message}")]
     Generic { message: String },
@@ -88,13 +88,13 @@ impl IntoResponse for AppError {
             AppError::Config(ref e) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Configuration error".to_string(), Some(e.to_string()), true)
             }
-            
+
             // Database errors - log and return generic message
             AppError::Database(ref e) => {
                 tracing::error!("Database error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database unavailable".to_string(), None, true)
             }
-            
+
             // Repository errors - handle specific cases
             AppError::Repository(RepositoryError::NotFound) => {
                 (StatusCode::NOT_FOUND, "Resource not found".to_string(), None, false)
@@ -109,7 +109,7 @@ impl IntoResponse for AppError {
                 tracing::error!("Repository error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None, true)
             }
-            
+
             // Service errors - handle specific cases
             AppError::Service(ServiceError::NotFound) => {
                 (StatusCode::NOT_FOUND, "Resource not found".to_string(), None, false)
@@ -128,73 +128,73 @@ impl IntoResponse for AppError {
                 tracing::warn!("External service error: {}", msg);
                 (StatusCode::BAD_GATEWAY, "External service unavailable".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Validation errors - client errors
             AppError::Validation(ref msg) => {
                 (StatusCode::BAD_REQUEST, "Validation error".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Authentication errors - client errors
             AppError::Authentication(ref msg) => {
                 (StatusCode::UNAUTHORIZED, "Authentication failed".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Authorization errors - client errors
             AppError::Authorization(ref msg) => {
                 (StatusCode::FORBIDDEN, "Access denied".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Not found errors - client errors
             AppError::NotFound(ref msg) => {
                 (StatusCode::NOT_FOUND, "Resource not found".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Conflict errors - client errors
             AppError::Conflict(ref msg) => {
                 (StatusCode::CONFLICT, "Conflict".to_string(), Some(msg.clone()), false)
             }
-            
+
             // External service errors - dependency issues
             AppError::ExternalService(ref msg) => {
                 tracing::warn!("External service error: {}", msg);
                 (StatusCode::BAD_GATEWAY, "External service unavailable".to_string(), Some(msg.clone()), false)
             }
-            
+
             // HTTP client errors - dependency issues
             AppError::HttpClient(ref e) => {
                 tracing::warn!("HTTP client error: {:?}", e);
                 (StatusCode::BAD_GATEWAY, "External service unavailable".to_string(), None, false)
             }
-            
+
             // Serialization errors - typically internal issues
             AppError::Serialization(ref e) => {
                 tracing::error!("Serialization error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None, true)
             }
-            
+
             // IO errors - typically internal issues
             AppError::Io(ref e) => {
                 tracing::error!("IO error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None, true)
             }
-            
+
             // Timeout errors - service unavailable
             AppError::Timeout(ref msg) => {
                 tracing::warn!("Timeout error: {}", msg);
                 (StatusCode::REQUEST_TIMEOUT, "Request timeout".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Rate limiting errors - client errors
             AppError::RateLimit(ref msg) => {
                 (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string(), Some(msg.clone()), false)
             }
-            
+
             // Internal server errors - log and capture
             AppError::Internal => {
                 tracing::error!("Internal server error: {:?}", self);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None, true)
             }
-            
+
             // Generic errors with context
             AppError::Generic { ref message } => {
                 tracing::error!("Generic error: {}", message);
@@ -228,7 +228,7 @@ impl From<validator::ValidationErrors> for AppError {
                 })
             })
             .collect();
-        
+
         AppError::Validation(error_messages.join(", "))
     }
 }
@@ -254,49 +254,49 @@ impl AppError {
     pub fn validation<S: Into<String>>(message: S) -> Self {
         AppError::Validation(message.into())
     }
-    
+
     /// Create an authentication error with a custom message
     pub fn authentication<S: Into<String>>(message: S) -> Self {
         AppError::Authentication(message.into())
     }
-    
+
     /// Create an authorization error with a custom message
     pub fn authorization<S: Into<String>>(message: S) -> Self {
         AppError::Authorization(message.into())
     }
-    
+
     /// Create a not found error with a custom message
     pub fn not_found<S: Into<String>>(message: S) -> Self {
         AppError::NotFound(message.into())
     }
-    
+
     /// Create a conflict error with a custom message
     pub fn conflict<S: Into<String>>(message: S) -> Self {
         AppError::Conflict(message.into())
     }
-    
+
     /// Create an external service error with a custom message
     pub fn external_service<S: Into<String>>(message: S) -> Self {
         AppError::ExternalService(message.into())
     }
-    
+
     /// Create a timeout error with a custom message
     pub fn timeout<S: Into<String>>(message: S) -> Self {
         AppError::Timeout(message.into())
     }
-    
+
     /// Create a rate limit error with a custom message
     pub fn rate_limit<S: Into<String>>(message: S) -> Self {
         AppError::RateLimit(message.into())
     }
-    
+
     /// Create a generic error with a custom message
     pub fn generic<S: Into<String>>(message: S) -> Self {
         AppError::Generic {
             message: message.into(),
         }
     }
-    
+
     /// Check if the error is a client error (4xx status codes)
     pub fn is_client_error(&self) -> bool {
         matches!(
@@ -315,12 +315,12 @@ impl AppError {
                 | AppError::Repository(RepositoryError::Validation(_))
         )
     }
-    
+
     /// Check if the error is a server error (5xx status codes)
     pub fn is_server_error(&self) -> bool {
         !self.is_client_error()
     }
-    
+
     /// Get the error category for logging and monitoring
     pub fn category(&self) -> &'static str {
         match self {
@@ -351,12 +351,12 @@ impl AppError {
             AppError::Config(ref e) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Configuration error".to_string(), Some(e.to_string()))
             }
-            
+
             // Database errors - log and return generic message
             AppError::Database(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Database unavailable".to_string(), None)
             }
-            
+
             // Repository errors - handle specific cases
             AppError::Repository(RepositoryError::NotFound) => {
                 (StatusCode::NOT_FOUND, "Resource not found".to_string(), None)
@@ -370,7 +370,7 @@ impl AppError {
             AppError::Repository(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None)
             }
-            
+
             // Service errors - handle specific cases
             AppError::Service(ServiceError::NotFound) => {
                 (StatusCode::NOT_FOUND, "Resource not found".to_string(), None)
@@ -387,67 +387,67 @@ impl AppError {
             AppError::Service(ServiceError::ExternalService(ref msg)) => {
                 (StatusCode::BAD_GATEWAY, "External service unavailable".to_string(), Some(msg.clone()))
             }
-            
+
             // Validation errors - client errors
             AppError::Validation(ref msg) => {
                 (StatusCode::BAD_REQUEST, "Validation error".to_string(), Some(msg.clone()))
             }
-            
+
             // Authentication errors - client errors
             AppError::Authentication(ref msg) => {
                 (StatusCode::UNAUTHORIZED, "Authentication failed".to_string(), Some(msg.clone()))
             }
-            
+
             // Authorization errors - client errors
             AppError::Authorization(ref msg) => {
                 (StatusCode::FORBIDDEN, "Access denied".to_string(), Some(msg.clone()))
             }
-            
+
             // Not found errors - client errors
             AppError::NotFound(ref msg) => {
                 (StatusCode::NOT_FOUND, "Resource not found".to_string(), Some(msg.clone()))
             }
-            
+
             // Conflict errors - client errors
             AppError::Conflict(ref msg) => {
                 (StatusCode::CONFLICT, "Conflict".to_string(), Some(msg.clone()))
             }
-            
+
             // External service errors - dependency issues
             AppError::ExternalService(ref msg) => {
                 (StatusCode::BAD_GATEWAY, "External service unavailable".to_string(), Some(msg.clone()))
             }
-            
+
             // HTTP client errors - dependency issues
             AppError::HttpClient(_) => {
                 (StatusCode::BAD_GATEWAY, "External service unavailable".to_string(), None)
             }
-            
+
             // Serialization errors - typically internal issues
             AppError::Serialization(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None)
             }
-            
+
             // IO errors - typically internal issues
             AppError::Io(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None)
             }
-            
+
             // Timeout errors - service unavailable
             AppError::Timeout(ref msg) => {
                 (StatusCode::REQUEST_TIMEOUT, "Request timeout".to_string(), Some(msg.clone()))
             }
-            
+
             // Rate limiting errors - client errors
             AppError::RateLimit(ref msg) => {
                 (StatusCode::TOO_MANY_REQUESTS, "Rate limit exceeded".to_string(), Some(msg.clone()))
             }
-            
+
             // Internal server errors - log and capture
             AppError::Internal => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None)
             }
-            
+
             // Generic errors with context
             AppError::Generic { message: _ } => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string(), None)
@@ -588,10 +588,10 @@ impl IntoResponse for ContextualAppError {
 
         // Convert to HTTP response
         let (status, error_message, details) = self.error.to_http_response_parts();
-        
+
         // Get correlation ID before moving context
         let correlation_id = self.context.correlation_id().map(|s| s.to_string());
-        
+
         // Create contextual response
         let contextual_response = match details {
             Some(details) => ContextualErrorResponse::with_details(error_message, details, self.context),
@@ -644,10 +644,10 @@ pub async fn error_context_middleware(
 
     // Store context in request extensions for use in handlers
     let context = ErrorContext::from_request_parts(correlation_id, path, method);
-    
+
     // Process the request
     let mut response = next.run(request).await;
-    
+
     // Add correlation ID to response headers if available
     if let Some(correlation_id) = context.correlation_id() {
         if let Ok(header_value) = HeaderValue::from_str(correlation_id) {
@@ -655,6 +655,6 @@ pub async fn error_context_middleware(
             response.headers_mut().insert("x-request-id", header_value);
         }
     }
-    
+
     response
 }

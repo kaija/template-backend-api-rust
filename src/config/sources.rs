@@ -93,26 +93,26 @@ impl AppConfig {
         // If Vault is configured, load secrets from Vault
         if let Some(vault_config) = &app_config.vault {
             tracing::info!("Loading secrets from Vault at {}", vault_config.address);
-            
+
             let vault_loader = VaultConfigLoader::new(Some(vault_config)).await?;
-            
+
             // Check Vault health first
             match vault_loader.health_check().await {
                 Ok(true) => {
                     tracing::info!("Vault health check passed");
-                    
+
                     // Define the secret paths to load
                     let secret_paths = vec![
                         "database",
-                        "sentry", 
+                        "sentry",
                         "external-services",
                     ];
-                    
+
                     // Load secrets from Vault
                     match vault_loader.load_config_values(&secret_paths).await {
                         Ok(vault_secrets) => {
                             tracing::info!("Loaded {} secrets from Vault", vault_secrets.len());
-                            
+
                             // Apply Vault secrets to configuration
                             Self::apply_vault_secrets(&mut app_config, vault_secrets)?;
                         }
@@ -148,17 +148,17 @@ impl AppConfig {
                         tracing::warn!("Database URL format doesn't support password injection");
                     }
                 }
-                
+
                 // Sentry secrets
                 "sentry_dsn" => config.sentry.dsn = value,
-                
+
                 // Add more secret mappings as needed
                 _ => {
                     tracing::debug!("Unknown Vault secret key: {}", key);
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -368,7 +368,7 @@ sentry:
         // Test that the hierarchical loading works by loading the main config
         let config = AppConfig::load();
         assert!(config.is_ok());
-        
+
         let config = config.unwrap();
         assert!(!config.server.host.is_empty());
         assert!(config.server.port > 0);
@@ -380,7 +380,7 @@ sentry:
     async fn test_vault_integration() {
         use crate::config::vault::MockVaultClient;
         use crate::config::VaultConfig;
-        
+
         // Create a test configuration with Vault
         let mut config = AppConfig::default();
         config.vault = Some(VaultConfig {
@@ -391,7 +391,7 @@ sentry:
             tls_skip_verify: false,
             ca_cert_path: None,
         });
-        
+
         // Test that Vault config validates
         assert!(config.validate().is_ok());
     }
@@ -402,9 +402,9 @@ sentry:
         let mut secrets = HashMap::new();
         secrets.insert("database_url".to_string(), "postgresql://vault:secret@localhost/db".to_string());
         secrets.insert("sentry_dsn".to_string(), "https://vault-dsn@sentry.io/123".to_string());
-        
+
         AppConfig::apply_vault_secrets(&mut config, secrets).unwrap();
-        
+
         assert_eq!(config.database.url, "postgresql://vault:secret@localhost/db");
         assert_eq!(config.sentry.dsn, "https://vault-dsn@sentry.io/123");
     }

@@ -30,13 +30,13 @@ pub fn extract_client_ip(headers: &HeaderMap, remote_addr: Option<std::net::Sock
             }
         }
     }
-    
+
     if let Some(real_ip) = headers.get("x-real-ip") {
         if let Ok(ip_str) = real_ip.to_str() {
             return ip_str.to_string();
         }
     }
-    
+
     // Fall back to remote address
     remote_addr
         .map(|addr| addr.ip().to_string())

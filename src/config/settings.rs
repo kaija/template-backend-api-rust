@@ -41,24 +41,24 @@ impl AppConfig {
         self.logging.validate()?;
         self.sentry.validate()?;
         self.external_service.validate()?;
-        
+
         if let Some(vault) = &self.vault {
             vault.validate()?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if running in development environment
     pub fn is_development(&self) -> bool {
         self.environment == "development" || self.environment == "dev"
     }
-    
+
     /// Check if running in production environment
     pub fn is_production(&self) -> bool {
         self.environment == "production" || self.environment == "prod"
     }
-    
+
     /// Check if running in test environment
     pub fn is_test(&self) -> bool {
         self.environment == "test" || self.environment == "testing"
@@ -83,7 +83,7 @@ impl ServerConfig {
         if self.host.is_empty() {
             return Err(ConfigValidationError::Server("Host cannot be empty".to_string()));
         }
-        
+
         // Try to parse as IP address, if that fails it should be a valid hostname
         if self.host != "localhost" && IpAddr::from_str(&self.host).is_err() {
             // Basic hostname validation - should not contain invalid characters
@@ -91,29 +91,29 @@ impl ServerConfig {
                 return Err(ConfigValidationError::Server("Invalid host format".to_string()));
             }
         }
-        
+
         // Validate port range
         if self.port == 0 {
             return Err(ConfigValidationError::Server("Port cannot be 0".to_string()));
         }
-        
+
         // Validate timeout values
         if self.timeout_seconds == 0 {
             return Err(ConfigValidationError::Server("Timeout must be greater than 0".to_string()));
         }
-        
+
         if self.graceful_shutdown_timeout_seconds == 0 {
             return Err(ConfigValidationError::Server("Graceful shutdown timeout must be greater than 0".to_string()));
         }
-        
+
         // Validate max connections
         if self.max_connections == 0 {
             return Err(ConfigValidationError::Server("Max connections must be greater than 0".to_string()));
         }
-        
+
         Ok(())
     }
-    
+
     /// Get the socket address for binding
     pub fn socket_addr(&self) -> Result<SocketAddr, ConfigValidationError> {
         let ip = if self.host == "localhost" {
@@ -122,7 +122,7 @@ impl ServerConfig {
             IpAddr::from_str(&self.host)
                 .map_err(|_| ConfigValidationError::Server(format!("Invalid IP address: {}", self.host)))?
         };
-        
+
         Ok(SocketAddr::new(ip, self.port))
     }
 }
@@ -152,50 +152,50 @@ impl DatabaseConfig {
         if self.url.is_empty() {
             return Err(ConfigValidationError::Database("Database URL cannot be empty".to_string()));
         }
-        
+
         // Parse URL to ensure it's valid
         Url::parse(&self.url)
             .map_err(|e| ConfigValidationError::Database(format!("Invalid database URL: {}", e)))?;
-        
+
         // Validate connection pool settings
         if self.max_connections == 0 {
             return Err(ConfigValidationError::Database("Max connections must be greater than 0".to_string()));
         }
-        
+
         if self.min_connections > self.max_connections {
             return Err(ConfigValidationError::Database("Min connections cannot be greater than max connections".to_string()));
         }
-        
+
         // Validate timeout values
         if self.acquire_timeout_seconds == 0 {
             return Err(ConfigValidationError::Database("Acquire timeout must be greater than 0".to_string()));
         }
-        
+
         if self.idle_timeout_seconds == 0 {
             return Err(ConfigValidationError::Database("Idle timeout must be greater than 0".to_string()));
         }
-        
+
         if self.connect_timeout_seconds == 0 {
             return Err(ConfigValidationError::Database("Connect timeout must be greater than 0".to_string()));
         }
-        
+
         if self.statement_timeout_seconds == 0 {
             return Err(ConfigValidationError::Database("Statement timeout must be greater than 0".to_string()));
         }
-        
+
         Ok(())
     }
-    
+
     /// Get database name from URL
     pub fn database_name(&self) -> Result<String, ConfigValidationError> {
         let url = Url::parse(&self.url)
             .map_err(|e| ConfigValidationError::Database(format!("Invalid database URL: {}", e)))?;
-        
+
         let path = url.path().trim_start_matches('/');
         if path.is_empty() {
             return Err(ConfigValidationError::Database("Database name not found in URL".to_string()));
         }
-        
+
         Ok(path.to_string())
     }
 }
@@ -230,7 +230,7 @@ impl LoggingConfig {
                 format!("Invalid log level '{}'. Valid levels: {}", self.level, valid_levels.join(", "))
             ));
         }
-        
+
         // Validate log format
         let valid_formats = ["json", "pretty", "compact"];
         if !valid_formats.contains(&self.format.to_lowercase().as_str()) {
@@ -238,7 +238,7 @@ impl LoggingConfig {
                 format!("Invalid log format '{}'. Valid formats: {}", self.format, valid_formats.join(", "))
             ));
         }
-        
+
         // Validate target
         let valid_targets = ["stdout", "stderr", "file"];
         if !valid_targets.contains(&self.target.to_lowercase().as_str()) {
@@ -246,17 +246,17 @@ impl LoggingConfig {
                 format!("Invalid log target '{}'. Valid targets: {}", self.target, valid_targets.join(", "))
             ));
         }
-        
+
         // If target is file, file_path must be provided
         if self.target.to_lowercase() == "file" && self.file_path.is_none() {
             return Err(ConfigValidationError::Logging(
                 "File path must be provided when target is 'file'".to_string()
             ));
         }
-        
+
         Ok(())
     }
-    
+
     /// Get the tracing level filter
     pub fn tracing_level(&self) -> tracing::Level {
         match self.level.to_lowercase().as_str() {
@@ -301,27 +301,27 @@ impl SentryConfig {
                 ));
             }
         }
-        
+
         // Validate environment name
         if self.environment.is_empty() {
             return Err(ConfigValidationError::Sentry("Environment cannot be empty".to_string()));
         }
-        
+
         // Validate sample rate
         if self.traces_sample_rate < 0.0 || self.traces_sample_rate > 1.0 {
             return Err(ConfigValidationError::Sentry(
                 "Traces sample rate must be between 0.0 and 1.0".to_string()
             ));
         }
-        
+
         // Validate max breadcrumbs
         if self.max_breadcrumbs == 0 {
             return Err(ConfigValidationError::Sentry("Max breadcrumbs must be greater than 0".to_string()));
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if Sentry is enabled (has a valid DSN)
     pub fn is_enabled(&self) -> bool {
         !self.dsn.is_empty()
@@ -357,33 +357,33 @@ impl VaultConfig {
         if self.address.is_empty() {
             return Err(ConfigValidationError::Vault("Address cannot be empty".to_string()));
         }
-        
+
         // Parse address to ensure it's a valid URL
         Url::parse(&self.address)
             .map_err(|e| ConfigValidationError::Vault(format!("Invalid address URL: {}", e)))?;
-        
+
         // Validate token
         if self.token.is_empty() {
             return Err(ConfigValidationError::Vault("Token cannot be empty".to_string()));
         }
-        
+
         // Validate mount path
         if self.mount_path.is_empty() {
             return Err(ConfigValidationError::Vault("Mount path cannot be empty".to_string()));
         }
-        
+
         // Validate timeout
         if self.timeout_seconds == 0 {
             return Err(ConfigValidationError::Vault("Timeout must be greater than 0".to_string()));
         }
-        
+
         // If CA cert path is provided, it should exist (in production)
         if let Some(ca_path) = &self.ca_cert_path {
             if ca_path.is_empty() {
                 return Err(ConfigValidationError::Vault("CA cert path cannot be empty if provided".to_string()));
             }
         }
-        
+
         Ok(())
     }
 }
@@ -417,19 +417,19 @@ impl ExternalServiceConfig {
                 return Err(ConfigValidationError::ExternalService("External service timeout must be greater than 0".to_string()));
             }
         }
-        
+
         if self.retry_delay_ms == 0 {
             return Err(ConfigValidationError::ExternalService("Retry delay must be greater than 0".to_string()));
         }
-        
+
         if self.circuit_breaker_threshold == 0 {
             return Err(ConfigValidationError::ExternalService("Circuit breaker threshold must be greater than 0".to_string()));
         }
-        
+
         if self.circuit_breaker_timeout_seconds == 0 {
             return Err(ConfigValidationError::ExternalService("Circuit breaker timeout must be greater than 0".to_string()));
         }
-        
+
         Ok(())
     }
 }

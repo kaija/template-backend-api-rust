@@ -13,7 +13,7 @@ pub fn hash_password(password: &str) -> Result<String, argon2::password_hash::Er
 pub fn verify_password(password: &str, hash: &str) -> Result<bool, argon2::password_hash::Error> {
     let parsed_hash = PasswordHash::new(hash)?;
     let argon2 = Argon2::default();
-    
+
     match argon2.verify_password(password.as_bytes(), &parsed_hash) {
         Ok(()) => Ok(true),
         Err(argon2::password_hash::Error::Password) => Ok(false),
@@ -28,7 +28,7 @@ pub fn generate_random_string(length: usize) -> String {
                             abcdefghijklmnopqrstuvwxyz\
                             0123456789";
     let mut rng = rand::thread_rng();
-    
+
     (0..length)
         .map(|_| {
             let idx = rng.gen_range(0..CHARSET.len());

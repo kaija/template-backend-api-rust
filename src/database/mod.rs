@@ -13,7 +13,7 @@ impl Database {
     /// Create a new database connection pool
     pub async fn new(config: &DatabaseConfig) -> Result<Self, DatabaseError> {
         info!("Initializing database connection pool");
-        
+
         let pool = PgPoolOptions::new()
             .max_connections(config.max_connections)
             .min_connections(config.min_connections)
@@ -46,7 +46,7 @@ impl Database {
     /// Check database connectivity and health
     pub async fn health_check(&self) -> Result<DatabaseHealth, DatabaseError> {
         let start = std::time::Instant::now();
-        
+
         // Test basic connectivity with a simple query
         let result = sqlx::query("SELECT 1 as health_check")
             .fetch_one(&self.pool)
@@ -75,7 +75,7 @@ impl Database {
     /// Run database migrations
     pub async fn migrate(&self) -> Result<(), DatabaseError> {
         info!("Running database migrations");
-        
+
         sqlx::migrate!("./migrations")
             .run(&self.pool)
             .await
@@ -127,19 +127,19 @@ pub struct ConnectionStats {
 pub enum DatabaseError {
     #[error("Failed to connect to database: {0}")]
     ConnectionFailed(String),
-    
+
     #[error("Database health check failed: {0}")]
     HealthCheckFailed(String),
-    
+
     #[error("Database migration failed: {0}")]
     MigrationFailed(String),
-    
+
     #[error("Database query failed: {0}")]
     QueryFailed(String),
-    
+
     #[error("Database transaction failed: {0}")]
     TransactionFailed(String),
-    
+
     #[error("Database pool error: {0}")]
     PoolError(String),
 }
@@ -165,7 +165,7 @@ pub async fn create_pool(config: &DatabaseConfig) -> Result<PgPool, DatabaseErro
 /// Helper function to run migrations
 pub async fn run_migrations(pool: &PgPool) -> Result<(), DatabaseError> {
     info!("Running database migrations");
-    
+
     sqlx::migrate!("./migrations")
         .run(pool)
         .await
@@ -178,7 +178,7 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), DatabaseError> {
 /// Helper function to perform database health check
 pub async fn health_check(pool: &PgPool) -> Result<DatabaseHealth, DatabaseError> {
     let start = std::time::Instant::now();
-    
+
     let result = sqlx::query("SELECT 1 as health_check")
         .fetch_one(pool)
         .await;

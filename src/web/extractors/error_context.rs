@@ -20,11 +20,11 @@ where
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // Extract correlation ID from extensions (set by request_id_middleware)
         let correlation_id = parts.extensions.get::<String>().cloned();
-        
+
         // Extract request information
         let path = Some(parts.uri.path().to_string());
         let method = Some(parts.method.to_string());
-        
+
         // Build error context
         let context = RequestContextExtractor::new()
             .with_correlation_id(correlation_id)

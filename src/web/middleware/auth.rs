@@ -20,7 +20,7 @@ pub async fn auth_middleware(
         .get::<String>()
         .cloned()
         .unwrap_or_else(|| "unknown".to_string());
-    
+
     // Extract and validate authorization header
     let token = match extract_bearer_token(request.headers()) {
         Some(token) => token,
@@ -31,7 +31,7 @@ pub async fn auth_middleware(
     };
 
     // Validate token and get current user
-    let current_user = match app_state.auth_service.validate_token(token).await {
+    let current_user = match app_state.auth_service().validate_token(token).await {
         Ok(user) => {
             tracing::debug!("Authentication successful for user: {} [correlation_id: {}]", user.id, correlation_id);
             user
@@ -73,10 +73,10 @@ pub async fn optional_auth_middleware(
         .get::<String>()
         .cloned()
         .unwrap_or_else(|| "unknown".to_string());
-    
+
     // Try to extract and validate authorization header
     if let Some(token) = extract_bearer_token(request.headers()) {
-        match app_state.auth_service.validate_token(token).await {
+        match app_state.auth_service().validate_token(token).await {
             Ok(current_user) => {
                 tracing::debug!("Optional authentication successful for user: {} [correlation_id: {}]", current_user.id, correlation_id);
                 request.extensions_mut().insert(current_user);
@@ -119,7 +119,7 @@ pub async fn require_role_middleware(
                 .get::<String>()
                 .cloned()
                 .unwrap_or_else(|| "unknown".to_string());
-            
+
             // Get current user from request extensions (should be set by auth middleware)
             let current_user = request
                 .extensions()
@@ -132,7 +132,7 @@ pub async fn require_role_middleware(
             // TODO: Implement role checking logic
             // For now, we'll assume all authenticated users have access
             // In a real implementation, you'd check user roles/permissions
-            tracing::debug!("Role check passed for user: {} (required: {}) [correlation_id: {}]", 
+            tracing::debug!("Role check passed for user: {} (required: {}) [correlation_id: {}]",
                 current_user.id, required_role, correlation_id);
 
             Ok(next.run(request).await)
@@ -149,7 +149,7 @@ mod tests {
     fn test_extract_bearer_token_valid() {
         let mut headers = HeaderMap::new();
         headers.insert("authorization", "Bearer abc123".parse().unwrap());
-        
+
         let token = extract_bearer_token(&headers);
         assert_eq!(token, Some("abc123"));
     }
@@ -158,7 +158,7 @@ mod tests {
     fn test_extract_bearer_token_invalid() {
         let mut headers = HeaderMap::new();
         headers.insert("authorization", "Basic abc123".parse().unwrap());
-        
+
         let token = extract_bearer_token(&headers);
         assert_eq!(token, None);
     }
@@ -167,7 +167,7 @@ mod tests {
     fn test_extract_bearer_token_empty() {
         let mut headers = HeaderMap::new();
         headers.insert("authorization", "Bearer ".parse().unwrap());
-        
+
         let token = extract_bearer_token(&headers);
         assert_eq!(token, None);
     }

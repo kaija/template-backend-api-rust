@@ -11,25 +11,25 @@ use tracing::{info, warn, error, instrument};
 pub enum ExternalServiceError {
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
-    
+
     #[error("Timeout error")]
     Timeout,
-    
+
     #[error("Service unavailable")]
     ServiceUnavailable,
-    
+
     #[error("Invalid response: {0}")]
     InvalidResponse(String),
-    
+
     #[error("Circuit breaker open")]
     CircuitBreakerOpen,
-    
+
     #[error("Rate limit exceeded")]
     RateLimitExceeded,
-    
+
     #[error("Retry attempts exhausted")]
     RetryExhausted,
-    
+
     #[error("Serialization error: {0}")]
     Serialization(String),
 }
@@ -213,35 +213,35 @@ impl HttpExternalService {
         }
 
         let mut last_error = None;
-        
+
         for attempt in 0..=self.config.max_retries {
             let start_time = Instant::now();
-            
+
             match operation().await {
                 Ok(response) => {
                     let duration = start_time.elapsed();
                     info!("External service call succeeded on attempt {} in {:?}", attempt + 1, duration);
-                    
+
                     // Record success in circuit breaker
                     {
                         let mut cb = self.circuit_breaker.lock().unwrap();
                         cb.record_success();
                     }
-                    
+
                     return Ok(response);
                 }
                 Err(e) => {
                     let duration = start_time.elapsed();
                     warn!("External service call failed on attempt {} after {:?}: {}", attempt + 1, duration, e);
-                    
+
                     // Record failure in circuit breaker
                     {
                         let mut cb = self.circuit_breaker.lock().unwrap();
                         cb.record_failure();
                     }
-                    
+
                     last_error = Some(e);
-                    
+
                     // Don't retry on the last attempt
                     if attempt < self.config.max_retries {
                         let delay = Duration::from_millis(
@@ -264,14 +264,14 @@ impl ExternalService for HttpExternalService {
     #[instrument(skip(self), fields(url = %url))]
     async fn get(&self, url: &str) -> Result<Value, ExternalServiceError> {
         info!("Making GET request to: {}", url);
-        
+
         let url_clone = url.to_string();
         let client = self.client.clone();
-        
+
         self.execute_with_retry(|| {
             let url = url_clone.clone();
             let client = client.clone();
-            
+
             async move {
                 let response = client
                     .get(&url)
@@ -308,15 +308,15 @@ impl ExternalService for HttpExternalService {
     #[instrument(skip(self, body), fields(url = %url))]
     async fn post(&self, url: &str, body: Value) -> Result<Value, ExternalServiceError> {
         info!("Making POST request to: {}", url);
-        
+
         let url_clone = url.to_string();
         let client = self.client.clone();
-        
+
         self.execute_with_retry(|| {
             let url = url_clone.clone();
             let client = client.clone();
             let body = body.clone();
-            
+
             async move {
                 let response = client
                     .post(&url)
@@ -354,15 +354,15 @@ impl ExternalService for HttpExternalService {
     #[instrument(skip(self, body), fields(url = %url))]
     async fn put(&self, url: &str, body: Value) -> Result<Value, ExternalServiceError> {
         info!("Making PUT request to: {}", url);
-        
+
         let url_clone = url.to_string();
         let client = self.client.clone();
-        
+
         self.execute_with_retry(|| {
             let url = url_clone.clone();
             let client = client.clone();
             let body = body.clone();
-            
+
             async move {
                 let response = client
                     .put(&url)
@@ -400,14 +400,14 @@ impl ExternalService for HttpExternalService {
     #[instrument(skip(self), fields(url = %url))]
     async fn delete(&self, url: &str) -> Result<(), ExternalServiceError> {
         info!("Making DELETE request to: {}", url);
-        
+
         let url_clone = url.to_string();
         let client = self.client.clone();
-        
+
         let _result = self.execute_with_retry(|| {
             let url = url_clone.clone();
             let client = client.clone();
-            
+
             async move {
                 let response = client
                     .delete(&url)
@@ -472,28 +472,28 @@ impl HttpExternalService {
         body: Option<Value>,
     ) -> Result<Value, ExternalServiceError> {
         info!("Making custom {} request to: {}", method, url);
-        
+
         let url_clone = url.to_string();
         let client = self.client.clone();
-        
+
         self.execute_with_retry(|| {
             let url = url_clone.clone();
             let client = client.clone();
             let method = method.clone();
             let headers = headers.clone();
             let body = body.clone();
-            
+
             async move {
                 let mut request = client.request(method.clone(), &url);
-                
+
                 if let Some(headers) = headers {
                     request = request.headers(headers);
                 }
-                
+
                 if let Some(body) = body {
                     request = request.json(&body);
                 }
-                
+
                 let response = request
                     .send()
                     .await
@@ -528,7 +528,7 @@ impl HttpExternalService {
     /// Health check for external service
     pub async fn health_check(&self, url: &str) -> Result<ExternalServiceHealthStatus, ExternalServiceError> {
         let start_time = Instant::now();
-        
+
         match self.get(url).await {
             Ok(_) => {
                 let response_time = start_time.elapsed();
@@ -587,9 +587,9 @@ impl WebhookService {
     /// Send webhook notification
     pub async fn send_notification(&self, endpoint: &str, payload: Value) -> Result<(), ExternalServiceError> {
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
-        
+
         info!("Sending webhook notification to: {}", url);
-        
+
         let headers = {
             let mut headers = reqwest::header::HeaderMap::new();
             headers.insert("Content-Type", "application/json".parse().unwrap());
@@ -627,11 +627,11 @@ impl ApiClient {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/json".parse().unwrap());
         headers.insert("Accept", "application/json".parse().unwrap());
-        
+
         if let Some(api_key) = &self.api_key {
             headers.insert("Authorization", format!("Bearer {}", api_key).parse().unwrap());
         }
-        
+
         headers
     }
 
@@ -639,7 +639,7 @@ impl ApiClient {
     pub async fn get(&self, endpoint: &str) -> Result<Value, ExternalServiceError> {
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
         let headers = Some(self.get_headers());
-        
+
         self.http_service
             .custom_request(reqwest::Method::GET, &url, headers, None)
             .await
@@ -649,7 +649,7 @@ impl ApiClient {
     pub async fn post(&self, endpoint: &str, body: Value) -> Result<Value, ExternalServiceError> {
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
         let headers = Some(self.get_headers());
-        
+
         self.http_service
             .custom_request(reqwest::Method::POST, &url, headers, Some(body))
             .await
@@ -659,7 +659,7 @@ impl ApiClient {
     pub async fn put(&self, endpoint: &str, body: Value) -> Result<Value, ExternalServiceError> {
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
         let headers = Some(self.get_headers());
-        
+
         self.http_service
             .custom_request(reqwest::Method::PUT, &url, headers, Some(body))
             .await
@@ -669,7 +669,7 @@ impl ApiClient {
     pub async fn delete(&self, endpoint: &str) -> Result<Value, ExternalServiceError> {
         let url = format!("{}/{}", self.base_url.trim_end_matches('/'), endpoint.trim_start_matches('/'));
         let headers = Some(self.get_headers());
-        
+
         self.http_service
             .custom_request(reqwest::Method::DELETE, &url, headers, None)
             .await
@@ -692,14 +692,14 @@ mod tests {
     #[test]
     fn test_circuit_breaker_can_execute() {
         let mut cb = CircuitBreaker::new(2, 60);
-        
+
         // Initially closed, should allow execution
         assert!(cb.can_execute());
-        
+
         // Record failures to open circuit
         cb.record_failure();
         assert!(cb.can_execute()); // Still closed
-        
+
         cb.record_failure();
         assert!(!cb.can_execute()); // Now open
     }
@@ -707,20 +707,20 @@ mod tests {
     #[test]
     fn test_circuit_breaker_success_recovery() {
         let mut cb = CircuitBreaker::new(2, 1); // 1 second timeout for testing
-        
+
         // Open the circuit
         cb.record_failure();
         cb.record_failure();
         assert_eq!(cb.state, CircuitBreakerState::Open);
-        
+
         // Wait for timeout (in real test, we'd need to wait)
         // For unit test, we'll manually set the time
         cb.last_failure_time = Some(Instant::now() - Duration::from_secs(2));
-        
+
         // Should transition to half-open
         assert!(cb.can_execute());
         assert_eq!(cb.state, CircuitBreakerState::HalfOpen);
-        
+
         // Record successes to close circuit
         cb.record_success();
         cb.record_success();
@@ -772,7 +772,7 @@ mod tests {
             Some("test-key".to_string()),
             config,
         );
-        
+
         let headers = client.get_headers();
         assert!(headers.contains_key("Content-Type"));
         assert!(headers.contains_key("Accept"));

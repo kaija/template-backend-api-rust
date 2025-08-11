@@ -16,13 +16,13 @@ pub trait AuthService: Send + Sync {
 pub enum AuthError {
     #[error("Invalid credentials")]
     InvalidCredentials,
-    
+
     #[error("Invalid token")]
     InvalidToken,
-    
+
     #[error("Token expired")]
     TokenExpired,
-    
+
     #[error("Internal error: {0}")]
     Internal(String),
 }

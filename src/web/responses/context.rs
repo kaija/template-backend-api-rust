@@ -291,7 +291,7 @@ mod tests {
             .with_request_method("POST");
 
         let fields = context.to_log_fields();
-        
+
         assert!(fields.iter().any(|(k, v)| k == &"correlation_id" && v == "test-123"));
         assert!(fields.iter().any(|(k, v)| k == &"request_path" && v == "/api/users"));
         assert!(fields.iter().any(|(k, v)| k == &"request_method" && v == "POST"));

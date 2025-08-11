@@ -23,7 +23,7 @@ pub struct CreateUserRequest {
     #[validate(custom(function = "validate_name"))]
     #[serde(deserialize_with = "deserialize_trimmed_string")]
     pub name: String,
-    
+
     #[validate(email(message = "Invalid email format"))]
     #[validate(length(max = 320, message = "Email must not exceed 320 characters"))]
     #[serde(deserialize_with = "deserialize_trimmed_lowercase_string")]
@@ -36,7 +36,7 @@ pub struct UpdateUserRequest {
     #[validate(length(min = 1, max = 255, message = "Name must be between 1 and 255 characters"))]
     #[serde(deserialize_with = "deserialize_optional_trimmed_string")]
     pub name: Option<String>,
-    
+
     #[validate(email(message = "Invalid email format"))]
     #[validate(length(max = 320, message = "Email must not exceed 320 characters"))]
     #[serde(deserialize_with = "deserialize_optional_trimmed_lowercase_string")]
@@ -91,15 +91,15 @@ pub struct UserStats {
 pub struct UserSearchFilters {
     #[validate(length(min = 1, max = 255, message = "Name filter must be between 1 and 255 characters"))]
     pub name: Option<String>,
-    
+
     #[validate(email(message = "Invalid email format for filter"))]
     pub email: Option<String>,
-    
+
     pub is_active: Option<bool>,
-    
+
     #[validate(range(min = 1, max = 1000, message = "Limit must be between 1 and 1000"))]
     pub limit: Option<i64>,
-    
+
     #[validate(range(min = 0, message = "Offset must be non-negative"))]
     pub offset: Option<i64>,
 }
@@ -126,25 +126,25 @@ pub struct UserStatusRequest {
 /// Validation functions
 fn validate_name(name: &str) -> Result<(), ValidationError> {
     let trimmed = name.trim();
-    
+
     if trimmed.is_empty() {
         return Err(ValidationError::new("Name cannot be empty or only whitespace"));
     }
-    
+
     if trimmed.len() < 2 {
         return Err(ValidationError::new("Name must be at least 2 characters long"));
     }
-    
+
     // Check for invalid characters
     if trimmed.chars().any(|c| c.is_control() || c == '\n' || c == '\r' || c == '\t') {
         return Err(ValidationError::new("Name contains invalid characters"));
     }
-    
+
     // Check for excessive whitespace
     if trimmed.contains("  ") {
         return Err(ValidationError::new("Name cannot contain consecutive spaces"));
     }
-    
+
     Ok(())
 }
 
@@ -189,31 +189,31 @@ impl User {
     pub fn is_active(&self) -> bool {
         self.is_active
     }
-    
+
     /// Get user's display name (for UI purposes)
     pub fn display_name(&self) -> &str {
         &self.name
     }
-    
+
     /// Get user's email domain
     pub fn email_domain(&self) -> Option<&str> {
         self.email.split('@').nth(1)
     }
-    
+
     /// Check if user was created recently (within last 24 hours)
     pub fn is_recently_created(&self) -> bool {
         let now = Utc::now();
         let duration = now.signed_duration_since(self.created_at);
         duration.num_hours() < 24
     }
-    
+
     /// Check if user was updated recently (within last hour)
     pub fn is_recently_updated(&self) -> bool {
         let now = Utc::now();
         let duration = now.signed_duration_since(self.updated_at);
         duration.num_minutes() < 60
     }
-    
+
     /// Convert to a safe representation (without sensitive data)
     pub fn to_safe_user(&self) -> SafeUser {
         SafeUser {
@@ -243,7 +243,7 @@ impl CreateUserRequest {
         // Normalize data
         self.name = self.name.trim().to_string();
         self.email = self.email.trim().to_lowercase();
-        
+
         // Validate
         match self.validate() {
             Ok(()) => Ok(self),
@@ -273,14 +273,14 @@ impl UpdateUserRequest {
                 self.name = None;
             }
         }
-        
+
         if let Some(email) = &mut self.email {
             *email = email.trim().to_lowercase();
             if email.is_empty() {
                 self.email = None;
             }
         }
-        
+
         // Validate
         match self.validate() {
             Ok(()) => Ok(self),
@@ -297,7 +297,7 @@ impl UpdateUserRequest {
             }
         }
     }
-    
+
     /// Check if the request has any updates
     pub fn has_updates(&self) -> bool {
         self.name.is_some() || self.email.is_some()
@@ -315,7 +315,7 @@ mod tests {
             name: "John Doe".to_string(),
             email: "john@example.com".to_string(),
         };
-        
+
         assert!(valid_request.validate().is_ok());
     }
 
@@ -325,7 +325,7 @@ mod tests {
             name: "John Doe".to_string(),
             email: "invalid-email".to_string(),
         };
-        
+
         assert!(invalid_request.validate().is_err());
     }
 
@@ -335,7 +335,7 @@ mod tests {
             name: "".to_string(),
             email: "john@example.com".to_string(),
         };
-        
+
         assert!(invalid_request.validate().is_err());
     }
 
@@ -345,7 +345,7 @@ mod tests {
             name: Some("Jane Doe".to_string()),
             email: Some("jane@example.com".to_string()),
         };
-        
+
         assert!(valid_request.validate().is_ok());
     }
 
@@ -355,7 +355,7 @@ mod tests {
             name: None,
             email: None,
         };
-        
+
         assert!(!request.has_updates());
     }
 
@@ -369,7 +369,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        
+
         assert!(user.is_active());
         assert_eq!(user.display_name(), "Test User");
         assert_eq!(user.email_domain(), Some("example.com"));
@@ -387,7 +387,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        
+
         let safe_user = user.to_safe_user();
         assert_eq!(safe_user.id, user.id);
         assert_eq!(safe_user.name, user.name);
@@ -424,7 +424,7 @@ mod tests {
             offset: 0,
             has_more: true,
         };
-        
+
         assert_eq!(metadata.total, 100);
         assert_eq!(metadata.limit, 20);
         assert_eq!(metadata.offset, 0);

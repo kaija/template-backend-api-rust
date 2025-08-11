@@ -58,6 +58,10 @@ async-trait = "0.1"
 rand = "0.8"
 futures = "0.3"
 
+# Metrics and monitoring
+prometheus = "0.13"
+axum-prometheus = "0.6"
+
 # Security and validation
 validator = { version = "0.18", features = ["derive"] }
 argon2 = "0.5"
@@ -77,6 +81,9 @@ mockall = "0.12"
 wiremock = "0.6"
 testcontainers = "0.15"
 tempfile = "3.8"
+
+[build-dependencies]
+chrono = { version = "0.4", features = ["serde"] }
 
 [features]
 default = []
