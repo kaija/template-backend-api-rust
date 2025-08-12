@@ -1,5 +1,15 @@
 # Build stage
-FROM rust:latest as builder
+FROM rust:1.86-slim as builder
+
+# Accept build arguments
+ARG RUSTC_VERSION
+ARG TARGET
+ARG BUILD_TIMESTAMP
+
+# Set environment variables from build args
+ENV RUSTC_VERSION=${RUSTC_VERSION}
+ENV TARGET=${TARGET}
+ENV BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -14,13 +24,18 @@ WORKDIR /app
 # Copy manifests
 COPY Cargo.toml Cargo.lock ./
 
-# Copy source code
+# Copy build scripts and source code
+COPY scripts ./scripts
+COPY build.rs ./
 COPY src ./src
 COPY migrations ./migrations
 COPY config ./config
 
-# Build the application
-RUN cargo build --release
+# Set build environment variables and build the application
+RUN chmod +x scripts/set-build-env.sh && \
+    ./scripts/set-build-env.sh && \
+    . /tmp/build-env.sh && \
+    cargo build --release
 
 # Runtime stage
 FROM debian:bookworm-slim

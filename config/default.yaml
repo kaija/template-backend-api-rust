@@ -10,7 +10,7 @@ server:
   resource_cleanup_timeout_seconds: 5
 
 database:
-  url: "postgresql://localhost/rust_api_template"
+  url: "postgresql://postgres/rust_api_template"
   max_connections: 10
   min_connections: 1
   acquire_timeout_seconds: 30

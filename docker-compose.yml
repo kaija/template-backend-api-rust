@@ -31,7 +31,12 @@ services:
 
   # Application
   api:
-    build: .
+    build:
+      context: .
+      args:
+        RUSTC_VERSION: "1.86.0"
+        TARGET: "x86_64-unknown-linux-gnu"
+        BUILD_TIMESTAMP: "${BUILD_TIMESTAMP:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
     ports:
       - "8080:8080"
     environment:
